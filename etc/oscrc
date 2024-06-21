@@ -2,5 +2,5 @@
 apiurl = https://api.opensuse.org
 
 [https://api.opensuse.org]
-user = tinita
-pass = PASSWORD
+user = OSC_USER
+pass = OSC_PASSWORD

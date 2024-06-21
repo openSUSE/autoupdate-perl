@@ -52,7 +52,8 @@ jobs:
         OSC_PASSWORD: ${{ secrets.OSC_PASSWORD }}
       run: |
         cp etc/oscrc ~/.oscrc
-        perl -pi -wE's/PASSWORD/$ENV{OSC_PASSWORD}/' ~/.oscrc
+        perl -pi -wE's/OSC_USER/$ENV{OSC_USER}/' ~/.oscrc
+        perl -pi -wE's/OSC_PASSWORD/$ENV{OSC_PASSWORD}/' ~/.oscrc
 
     - name: status
       run: |
