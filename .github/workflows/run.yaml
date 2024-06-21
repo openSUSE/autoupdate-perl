@@ -34,3 +34,49 @@ jobs:
         git config --global --add safe.directory '*'
 
     - uses: actions/checkout@v4
+
+    - run: |
+        git clone ${{ inputs.repo }}
+        cd cpanspec
+        git checkout ${{ inputs.branch }}
+
+    - name: fetch cpan releases
+      run: |
+        pwd
+        bin/fetch-cpan.sh
+        ls -lrt ~/obs-mirror
+        ls -lrt ~/obs-mirror/cpan
+
+    - name: configure osc
+      env: # Set the secret as an input
+        OSC_PASSWORD: ${{ secrets.OSC_PASSWORD }}
+      run: |
+        cp etc/oscrc ~/.oscrc
+        perl -pi -wE's/PASSWORD/$ENV{OSC_PASSWORD}/' ~/.oscrc
+
+    - name: status
+      run: |
+        ./bin/status-perl --data ~/obs-mirror --project home:tinita:testautoupdate --update
+
+
+#    - name: update
+#      run: |
+#        ./bin/update-perl \
+#            --data ~/obs-mirror \
+#            --project home:tinita:testautoupdate \
+#            --max ${{ inputs.max_modules }}
+#
+#    - name: ls
+#      run: |
+#        ls -lrt ~/obs-mirror
+#        ls -lrt ~/obs-mirror/cpan
+#
+    - uses: actions/upload-artifact@v4
+      with:
+        name: obs-mirror
+        path: |
+          ~/obs-mirror/cpan/
+          ~/obs-mirror/status/
+          ~/obs-mirror/auto.xml
+          ~/obs-mirror/perl.xml
+
