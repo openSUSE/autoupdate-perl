@@ -39,7 +39,7 @@ my $cpan2obs = CPAN2OBS->new({
     data => $data,
     cpanmirror => 'http://cpan.noris.de',
     apiurl => 'https://api.opensuse.org',
-    cpanspec => "$Bin/../cpanspec",
+    cpanspec => $ENV{CPANSPEC} || "$Bin/../cpanspec/cpanspec",
     project_prefix => $project,
 });
 
