@@ -17,8 +17,14 @@ LABEL org.opencontainers.image.created="%BUILDTIME%"
 # endlabelprefix
 
 RUN zypper install -y -C \
-        tar \
+        git \
         gzip \
+        obs-service-format_spec_file \
+        obs-service-download_files \
+        osc \
+        procmail \
+        tar \
+        wget \
         'perl(Algorithm::Diff)' \
         'perl(Archive::Zip)' \
         'perl(Class::Accessor::Chained)' \
@@ -32,9 +38,4 @@ RUN zypper install -y -C \
         'perl(Text::Autoformat)' \
         'perl(YAML::XS)' \
         'perl(XML::Simple)' \
-        obs-service-format_spec_file \
-        obs-service-download_files \
-        procmail \
-        wget \
-        osc \
    && zypper clean
