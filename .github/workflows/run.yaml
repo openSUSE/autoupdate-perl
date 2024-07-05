@@ -37,7 +37,6 @@ jobs:
 
     steps:
     - run: |
-        zypper in -y git
         git config --global --add safe.directory '*'
 
     - uses: actions/checkout@v4
@@ -50,6 +49,7 @@ jobs:
         OSC_USER: ${{ secrets.OSC_USER }}
         OSC_PASSWORD: ${{ secrets.OSC_PASSWORD }}
       run: |
+        chmod go-r ~/
         cp etc/oscrc ~/.oscrc
         perl -pi -wE's/OSC_USER/$ENV{OSC_USER}/' ~/.oscrc
         perl -pi -wE's/OSC_PASSWORD/$ENV{OSC_PASSWORD}/' ~/.oscrc
@@ -66,6 +66,8 @@ jobs:
         grep $'\t''todo' ~/obs-mirror/status/*.tsv || true
 
     - name: update
+      env:
+        CPANSPEC_WRAP_BUILD_COMMAND: chgrp -R cpan ..; chmod -R g+rx ..; chmod -R g+rwx .; su cpanbuild -c '$COMMAND'
       run: |
         ./bin/update-perl \
             --cpanspec "$PWD/cpanspec/cpanspec" \

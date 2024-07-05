@@ -39,3 +39,9 @@ RUN zypper install -y -C \
         'perl(YAML::XS)' \
         'perl(XML::Simple)' \
    && zypper clean
+
+RUN groupadd cpan \
+    && useradd -g cpan cpanbuild \
+    && usermod -G cpan root \
+  && true
+
