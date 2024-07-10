@@ -316,6 +316,7 @@ sub store_obs_cache {
     mkdir "$data/obs-cache" unless -d "$data/obs-cache";
     my $cachefile = "$data/obs-cache/$letter";
     store $cache, $cachefile;
+    DumpFile "$cachefile.yaml", $cache;
 }
 
 sub create_package_xml {
