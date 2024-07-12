@@ -5,6 +5,24 @@ There are a number of scripts that can update the following repositories:
 * https://build.opensuse.org/project/show/devel:languages:perl:CPAN-A (B, C, D
   etc.)
 
+## Automation
+
+https://build.opensuse.org/project/show/devel:languages:perl:autoupdate is
+updated by a daily scheduled workflow which triggers the actual update
+workflow:
+https://github.com/openSUSE/autoupdate-perl/actions/workflows/run.yaml
+
+You can trigger it manually by going that URL and filling out the form fields.
+
+## Installation
+
+You can use the image from
+`registry.opensuse.org/home/tinita/cpanspec/container/containers/opensuse/autoupdate-perl`.
+This is generated from `etc/container/Dockerfile` from this repository and
+built in
+[home:tinita:cpanspec:container/autoupdate-perl](https://build.opensuse.org/package/show/home:tinita:cpanspec:container/autoupdate-perl).
+Or you install the dependencies from the list in the Dockerfile.
+
 ## Usage
 
 This is how a crontab could look like:
