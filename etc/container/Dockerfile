@@ -23,6 +23,7 @@ RUN zypper install -y -C \
         obs-service-download_files \
         osc \
         procmail \
+        sccs \
         tar \
         wget \
         'perl(Algorithm::Diff)' \
