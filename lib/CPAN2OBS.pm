@@ -670,13 +670,18 @@ sub osc_update_dist_perl {
         $old_tar = $tar;
         unlink $tar;
     }
+    my $old_path = ".osc/$old_tar";
+    unless (-e $old_path) {
+        # older sources moved here with osc 1.9
+        $old_path = ".osc/sources/$old_tar";
+    }
     move "$dir/$tar", $checkout or die $!;
     my $error = 1;
     copy("$Bin/../cpanspec.yml", "$checkout/cpanspec.yml") unless -f "cpanspec.yml";
     {
         my $cmd = sprintf
             "timeout 900 perl $cpanspec $cpanspec_flags -v -f --pkgdetails %s --old-file %s %s > cpanspec.error 2>&1",
-            "$data/02packages.details.txt.gz", ".osc/$old_tar", $tar;
+            "$data/02packages.details.txt.gz", $old_path, $tar;
         debug("CMD $cmd");
         if (system $cmd or not -f $spec) {
             system("cat cpanspec.error");
