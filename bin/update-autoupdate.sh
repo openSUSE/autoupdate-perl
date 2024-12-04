@@ -1,5 +1,8 @@
 #!/bin/bash
 
+DIR="$( dirname ${BASH_SOURCE[0]} )/.."
+DATA_DIR=${DATA_DIR:-~/obs-mirror}
+
 case "$1" in
     -h|--help)
         echo "Wrapper for bin/status-perl && bin/update-perl"
@@ -7,12 +10,11 @@ case "$1" in
     ;;
 esac
 
-DIR="$( dirname ${BASH_SOURCE[0]} )/.."
 cd $DIR
 
-./bin/status-perl --data ~/obs-mirror --project devel:languages:perl:autoupdate --update
+./bin/status-perl --data "$DATA_DIR" --project devel:languages:perl:autoupdate --update
 
 ./bin/update-perl \
-    --data ~/obs-mirror \
+    --data "$DATA_DIR" \
     --project devel:languages:perl:autoupdate \
     --max 20
