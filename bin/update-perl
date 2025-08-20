@@ -19,12 +19,14 @@ GetOptions(
     'redo' => \my $redo,
     'cpanspec=s' => \my $cpanspec,
     'cpanspec-flags=s' => \my $cpanspec_flags,
+    'gitea' => \my $gitea,
     'help|h' => \my $help,
 );
 usage(), exit if $help;
 usage(), exit 1 if (not $project or not $data);
 #$project ||= "home:tinita:CPAN:autoupdate";
 #$project ||= "devel:languages:perl:CPAN-";
+$gitea //= 1;
 
 my $cpan2obs = CPAN2OBS->new({
     data => $data,
@@ -33,6 +35,7 @@ my $cpan2obs = CPAN2OBS->new({
     cpanspec => $cpanspec || "$Bin/../../cpanspec/cpanspec",
     cpanspec_flags => $cpanspec_flags || '',
     project_prefix => $project,
+    gitea => $gitea,
 });
 
 my $letter = 'perl';
