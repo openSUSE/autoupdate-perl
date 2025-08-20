@@ -44,15 +44,36 @@ jobs:
     - run: |
         git clone ${{ inputs.repo }} -b ${{ inputs.branch }}
 
+    - run: zypper -n in openssh-clients git-lfs
+
     - name: configure osc
       env:
         OSC_USER: ${{ secrets.OSC_USER }}
         OSC_PASSWORD: ${{ secrets.OSC_PASSWORD }}
+        GITEA_API_TOKEN: ${{ secrets.GITEA_API_TOKEN }}
+        GITEA_PRIVKEY: ${{ secrets.GITEA_PRIVKEY }}
       run: |
+        set -x
+
         chmod go-r ~/
         cp etc/oscrc ~/.oscrc
         perl -pi -wE's/OSC_USER/$ENV{OSC_USER}/' ~/.oscrc
         perl -pi -wE's/OSC_PASSWORD/$ENV{OSC_PASSWORD}/' ~/.oscrc
+
+        mkdir -p ~/.config/tea
+        cp etc/tea.yml ~/.config/tea/config.yml
+        perl -pi -wE's/GITEA_API_TOKEN/$ENV{GITEA_API_TOKEN}/' ~/.config/tea/config.yml
+        perl -pi -wE's,GITEA_SSH_KEY_FILE,$ENV{HOME}/.ssh/id_gitea,' ~/.config/tea/config.yml
+        mkdir ~/.ssh
+        echo "$GITEA_PRIVKEY" > ~/.ssh/id_gitea
+        chmod go-r ~/.ssh/id_gitea
+        git-obs login list
+
+        #git-obs repo fork perl/perl-Module-CoreList
+        #git-obs repo clone $OSC_USER/perl-Module-CoreList
+        #ls -l
+        #cd perl-Module-CoreList
+        #find *
 
     - name: fetch cpan releases
       run: |
@@ -68,6 +89,7 @@ jobs:
     - name: update
       env:
         CPANSPEC_WRAP_BUILD_COMMAND: chgrp -R cpan ..; chmod -R g+rx ..; chmod -R g+rwx .; su cpanbuild -c '$COMMAND'
+        GITEA_API_TOKEN: ${{ secrets.GITEA_API_TOKEN }}
       run: |
         ./bin/update-perl \
             --cpanspec "$PWD/cpanspec/cpanspec" \
@@ -75,26 +97,26 @@ jobs:
             --project "${{ inputs.obs_project }}" \
             --max "${{ inputs.max_modules }}" \
             --cpanspec-flags " ${{ inputs.cpanspec_flags }}"
-
-    - name: check
-      run: |
-        if ! grep $'\t''error' ~/obs-mirror/status/*; then
-            echo "Updates successful"
-        else
-            echo "Some updates failed!"; false
-        fi
-        ls -lrt ~/obs-mirror
-        ls -lrt ~/obs-mirror/status
-
-    - uses: actions/upload-artifact@v4
-      if: ${{ always() }}
-      with:
-        name: obs-mirror
-        path: |
-          ~/obs-mirror/cpan/
-          ~/obs-mirror/status/
-          ~/obs-mirror/auto.xml
-          ~/obs-mirror/perl.xml
+# 
+#     - name: check
+#       run: |
+#         if ! grep $'\t''error' ~/obs-mirror/status/*; then
+#             echo "Updates successful"
+#         else
+#             echo "Some updates failed!"; false
+#         fi
+#         ls -lrt ~/obs-mirror
+#         ls -lrt ~/obs-mirror/status
+# 
+#     - uses: actions/upload-artifact@v4
+#       if: ${{ always() }}
+#       with:
+#         name: obs-mirror
+#         path: |
+#           ~/obs-mirror/cpan/
+#           ~/obs-mirror/status/
+#           ~/obs-mirror/auto.xml
+#           ~/obs-mirror/perl.xml
 
 # Trigger with gh cli:
 # gh workflow run run.yaml [--ref branch] -f image=registry.opensuse.org/home/tinita/cpanspec/container/containers/opensuse/autoupdate-perl -f repo=https://github.com/perlpunk/cpanspec -f branch=normalize-versions -f obs_project=devel:languages:perl:autoupdate -f max_modules=1
