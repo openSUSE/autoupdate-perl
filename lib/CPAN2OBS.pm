@@ -774,11 +774,13 @@ sub update_status_perl {
     my $apiurl = $self->apiurl;
     my $data = $self->data;
 
-    my $perl_projects = "$data/perl.xml";
-    my $cmd = "osc -A $apiurl api /status/project/devel:languages:perl > $perl_projects";
-    debug("CMD $cmd");
-    system $cmd;
-    my $existing = XMLin($perl_projects)->{package};
+#    my $perl_projects = "$data/perl.xml";
+    my $perl_projects = 'tmp-source-info-dlp.xml';
+#    my $cmd = "osc -A $apiurl api /status/project/devel:languages:perl > $perl_projects";
+#    my $cmd = qq{osc -A $apiurl api "/source/devel:languages:perl?view=info&parse=1" > $perl_projects};
+#    debug("CMD $cmd");
+#    system $cmd;
+    my $existing = XMLin($perl_projects, KeyAttr => { sourceinfo => 'package' })->{sourceinfo};
 
     my $states = $self->fetch_status_perl();
     my $upstream = {};
@@ -791,6 +793,7 @@ sub update_status_perl {
         next unless defined $existing->{ $pkg };
         my $ex = $existing->{ $pkg };
         my $ex_version = $ex->{version};
+        warn __PACKAGE__.':'.__LINE__.": ======== process $dist $ex_version\n";
         my $ex_version_normal = eval { version->parse($ex_version || 0) };
         next unless $ex_version_normal;
         my $info = $upstream->{ $dist };
