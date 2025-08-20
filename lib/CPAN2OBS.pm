@@ -17,6 +17,7 @@ use File::Path qw/ remove_tree /;
 use File::Spec;
 use Parse::CPAN::Packages;
 use File::Glob qw/ bsd_glob /;
+use JSON::PP qw/ decode_json /;
 use FindBin '$Bin';
 use autodie qw/ mkdir chdir open close unlink /;
 
@@ -414,6 +415,8 @@ sub update_obs_perl {
     my $project_prefix = $self->project_prefix;
     my $data = $self->data;
     my $apiurl = $self->apiurl;
+    my $gitea = 1;
+    my $user = 'cpanmirror';
 
     my $auto_projects = "$data/auto.xml";
     my $cmd = sprintf "osc -A $apiurl api /source/%s > %s",
@@ -436,7 +439,7 @@ sub update_obs_perl {
 
     my $max = $args->{max};
     my $counter = 0;
-    for my $dist (@keys) {
+    DIST: for my $dist (@keys) {
         my %args = %$args;
         my $dist_status = $states->{ $dist };
         unless ($dist_status) {
@@ -452,20 +455,64 @@ sub update_obs_perl {
             next;
         }
 
+        my $tar = basename $url;
         my $pkg = "perl-$dist";
-        if ($existing->{ $pkg }) {
-            $args{exists} = 1;
-            my $tar = basename $url;
-
-            my $pxml = "/tmp/$pkg-autoupdate.xml";
-            my $cmd = sprintf "osc -A $apiurl api /source/%s/%s >%s",
-                $project_prefix, $pkg, $pxml;
-            system $cmd and die "Error ($cmd): $?";
-            my $info = XMLin($pxml);
-            unlink $pxml;
-            if ($info->{entry}->{ $tar }) {
-                debug("$tar already exists, skipping");
+        if ($gitea) {
+            my $url = 'https://src.opensuse.org/api/v1/repos';
+            my $cmd = sprintf
+                q{curl -sS -w "\n%%{http_code}\n" -X GET '%s/%s/%s/contents?ref=autoupdate' }
+                . q{-H 'accept: application/json' }
+                . q{-H 'Authorization: token %s'},
+                $url, $user, $pkg, $ENV{GITEA_API_TOKEN};
+            chomp(my @out = qx{$cmd});
+            if ($?) {
+                debug("'$cmd' failed: @out");
                 next;
+            }
+            my $code = pop @out;
+            if ($code == 200) {
+                my $json = join '', @out;
+                my $data = eval { decode_json $json };
+                if ($@) {
+                    info("Could not parse JSON, skipping. cmd '$cmd' ('$json'): $@");
+                    next;
+                }
+                if (ref $data ne 'ARRAY') {
+                    warn __PACKAGE__.':'.__LINE__.$".Data::Dumper->Dump([\@out], ['out']);
+                    warn __PACKAGE__.':'.__LINE__.$".Data::Dumper->Dump([\$data], ['data']);
+                    info("JSON not as expected, skipping. cmd '$cmd' ('$json'): $@");
+                    next;
+                }
+                for my $item (@$data) {
+                    my $name = $item->{name};
+                    warn __PACKAGE__.':'.__LINE__.": !!!!!!!! $name\n";
+                    if ($name eq $tar) {
+                        info("$tar already exists in $user/$pkg, skipping");
+                        next DIST;
+                    }
+                }
+            }
+            elsif ($code != 404) {
+                warn __PACKAGE__.':'.__LINE__.$".Data::Dumper->Dump([\$code], ['code']);
+                warn __PACKAGE__.':'.__LINE__.$".Data::Dumper->Dump([\@out], ['out']);
+                info("Response not as expected, skipping. cmd '$cmd': $@");
+                next;
+            }
+        }
+        else {
+            if ($existing->{ $pkg }) {
+                $args{exists} = 1;
+
+                my $pxml = "/tmp/$pkg-autoupdate.xml";
+                my $cmd = sprintf "osc -A $apiurl api /source/%s/%s >%s",
+                    $project_prefix, $pkg, $pxml;
+                system $cmd and die "Error ($cmd): $?";
+                my $info = XMLin($pxml);
+                unlink $pxml;
+                if ($info->{entry}->{ $tar }) {
+                    debug("$tar already exists, skipping");
+                    next DIST;
+                }
             }
         }
 
@@ -615,6 +662,8 @@ sub osc_update_dist_perl {
     my $cpanspec_flags = $self->cpanspec_flags;
     my $project_prefix = $self->project_prefix;
     my $letter = 'perl';
+    my $gitea = 1;
+    my $user = 'cpanmirror';
 
     my $osc = "$data/osc";
     mkdir $osc unless -d $osc;
@@ -626,6 +675,7 @@ sub osc_update_dist_perl {
     my $pkg = "perl-$dist";
     my $spec = "$pkg.spec";
     my $tar = basename $url;
+    warn __PACKAGE__.':'.__LINE__.$".Data::Dumper->Dump([\$tar], ['tar']);
 
     if ($exists) {
         my $cmd = sprintf "osc -A $apiurl rdelete -mrecreate -f %s %s",
@@ -634,7 +684,14 @@ sub osc_update_dist_perl {
         system $cmd and die "Error ($cmd): $?";
     }
 
-    {
+    if ($gitea) {
+        my $cmd = sprintf "git-obs repo fork perl/%s", $pkg;
+#        my $cmd = sprintf "osc -A $apiurl branch devel:languages:perl %s %s",
+#            $pkg, $project_prefix;
+        debug("CMD $cmd");
+        system $cmd and die "Error ($cmd): $?";
+    }
+    else {
         my $cmd = sprintf "osc -A $apiurl branch devel:languages:perl %s %s",
             $pkg, $project_prefix;
         debug("CMD $cmd");
@@ -653,31 +710,64 @@ sub osc_update_dist_perl {
     }
 
     my $checkout = "$dir/$project_prefix/$pkg";
+    if ($gitea) {
+        $checkout = "$dir/$pkg";
+    }
     if (-e $checkout) {
         debug("REMOVE $checkout");
         remove_tree $checkout, { verbose => 0, safe => 1 };
     }
-    {
-        my $cmd = sprintf "osc -A %s co %s/%s",
-            $apiurl, $project_prefix, $pkg;
+    if ($gitea) {
+        #git-obs repo clone $OSC_USER/perl-Module-CoreList
+        my $cmd = sprintf "git-obs repo clone %s/%s", $user, $pkg;
+        debug("CMD $cmd");
         system $cmd
             and die "Error executing '$cmd': $?";
     }
+    else {
+        my $cmd = sprintf "osc -A %s co %s/%s",
+            $apiurl, $project_prefix, $pkg;
+        debug("CMD $cmd");
+        system $cmd
+            and die "Error executing '$cmd': $?";
+    }
+    warn __PACKAGE__.':'.__LINE__.$".Data::Dumper->Dump([\$checkout], ['checkout']);
     chdir $checkout;
+    system "ls -la";
+    if (-e $tar) {
+        info("$tar already exists in $user/$pkg, skipping");
+        return;
+    }
+
+
 
     my $old_tar = '';
     for my $tar (bsd_glob("{$dist-*.tar*,$dist-*.tgz,$dist-*.zip}")) {
         $old_tar = $tar;
-        unlink $tar;
+        unlink $tar unless $gitea;
     }
-    my $old_path = ".osc/$old_tar";
-    unless (-e $old_path) {
-        # older sources moved here with osc 1.9
-        $old_path = ".osc/sources/$old_tar";
+
+    if ($gitea) {
+        my $cmd = "git checkout -b autoupdate";
+        debug("CMD $cmd");
+        system $cmd and die "Error executig '$cmd': $?";
     }
+
+    my $old_path = $old_tar;
+    unless ($gitea) {
+        $old_path = ".osc/$old_tar";
+        unless (-e $old_path) {
+            # older sources moved here with osc 1.9
+            $old_path = ".osc/sources/$old_tar";
+        }
+    }
+    warn __PACKAGE__.':'.__LINE__.$".Data::Dumper->Dump([\$old_path], ['old_path']);
+    system "ls -l $dir";
+
     move "$dir/$tar", $checkout or die $!;
+
     my $error = 1;
-    copy("$Bin/../cpanspec.yml", "$checkout/cpanspec.yml") unless -f "cpanspec.yml";
+#    copy("$Bin/../cpanspec.yml", "$checkout/cpanspec.yml") unless -f "cpanspec.yml";
     {
         my $cmd = sprintf
             "timeout 900 perl $cpanspec $cpanspec_flags -v -f --pkgdetails %s --old-file %s %s > cpanspec.error 2>&1",
@@ -693,20 +783,40 @@ sub osc_update_dist_perl {
             unlink "cpanspec.error";
         }
     }
-
-    {
+    if ($gitea) {
+        my $cmd = "git rm $old_tar";
+        debug("CMD $cmd");
+        system $cmd and die "Error executing '$cmd': $?";
+        $cmd = "git add $tar '*.spec' '*.changes'";
+        debug("CMD $cmd");
+        system $cmd and die "Error executing '$cmd': $?";
+    }
+    else {
         my $cmd = "osc addremove";
         debug("CMD $cmd");
         system $cmd and die "Error executig '$cmd': $?";
-        if ($args->{ask_commit}) {
-            my $answer = prompt("Commit? [Y/n]") || 'Y';
-            if ($answer ne 'Y') {
-                info("$pkg - no commit");
-                return 1;
-            }
-        }
+    }
 
-        $cmd = "osc ci -mupdate";
+    if ($args->{ask_commit}) {
+        my $answer = prompt("Commit? [Y/n]") || 'Y';
+        if ($answer ne 'Y') {
+            info("$pkg - no commit");
+            return 1;
+        }
+    }
+    if ($gitea) {
+        system 'git config --global user.email "timueller+perl@suse.de"';
+        system 'git config --global user.name "Tina Mueller (cpanmirror)"';
+        my $version_normal = eval { version->parse($version || 0) }->normal;
+        my $cmd = "git commit -m'Automatic update to $version_normal ($version)'";
+        debug("CMD $cmd");
+        system $cmd and die "Error executig '$cmd': $?";
+        $cmd = "git push --force -u origin autoupdate";
+        debug("CMD $cmd");
+        system $cmd and die "Error executig '$cmd': $?";
+    }
+    else {
+        my $cmd = "osc ci -mupdate";
         debug("CMD $cmd");
         system $cmd and die "Error executig '$cmd': $?";
     }
@@ -775,7 +885,7 @@ sub update_status_perl {
     my $data = $self->data;
 
 #    my $perl_projects = "$data/perl.xml";
-    my $perl_projects = 'tmp-source-info-dlp.xml';
+    my $perl_projects = "$Bin/../tmp-source-info-dlp.xml";
 #    my $cmd = "osc -A $apiurl api /status/project/devel:languages:perl > $perl_projects";
 #    my $cmd = qq{osc -A $apiurl api "/source/devel:languages:perl?view=info&parse=1" > $perl_projects};
 #    debug("CMD $cmd");
@@ -793,7 +903,6 @@ sub update_status_perl {
         next unless defined $existing->{ $pkg };
         my $ex = $existing->{ $pkg };
         my $ex_version = $ex->{version};
-        warn __PACKAGE__.':'.__LINE__.": ======== process $dist $ex_version\n";
         my $ex_version_normal = eval { version->parse($ex_version || 0) };
         next unless $ex_version_normal;
         my $info = $upstream->{ $dist };

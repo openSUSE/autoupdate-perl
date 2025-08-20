@@ -2946,10 +2946,10 @@
     <deps>perl(Test::More) &gt;= 1</deps>
     <deps>perl(version) &gt;= 0.86</deps>
   </sourceinfo>
-  <sourceinfo package="perl-Business-ISBN-Data" rev="86" vrev="104" srcmd5="370f3e0cb0dec502101a9834294311a7" verifymd5="1f88cc3def2811c350d613910029fd6b">
+  <sourceinfo package="perl-Business-ISBN-Data" rev="87" vrev="1" srcmd5="5badbce55d36e966d4deb27ea2149bf1" verifymd5="cdffde3fde40943cc5f10151e922a58c">
     <filename>perl-Business-ISBN-Data.spec</filename>
     <name>perl-Business-ISBN-Data</name>
-    <version>20250710.1.0</version>
+    <version>20250815.1.0</version>
     <release>0</release>
     <subpacks>perl-Business-ISBN-Data</subpacks>
     <deps>perl</deps>
@@ -23115,10 +23115,10 @@
     <deps>perl(Capture::Tiny)</deps>
     <deps>perl(Digest::SHA1) &gt;= 2.13</deps>
   </sourceinfo>
-  <sourceinfo package="perl-Module-CoreList" rev="133" vrev="2" srcmd5="40d7a0a083f02dd0027b46d3db22851b" verifymd5="a4fde23010843713b120439657d3b2eb">
+  <sourceinfo package="perl-Module-CoreList" rev="134" vrev="1" srcmd5="f4c960687aada2e681e82c5c612b5837" verifymd5="61e254df7c8042186c31190c6ecbab0e">
     <filename>perl-Module-CoreList.spec</filename>
     <name>perl-Module-CoreList</name>
-    <version>5.20250702</version>
+    <version>5.20250803</version>
     <release>0</release>
     <subpacks>perl-Module-CoreList</subpacks>
     <deps>perl</deps>
