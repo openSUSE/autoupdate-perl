@@ -25,6 +25,7 @@ RUN zypper install -y -C \
         procmail \
         tar \
         wget \
+        openssh-clients \
         'perl(Algorithm::Diff)' \
         'perl(Archive::Zip)' \
         'perl(Class::Accessor::Chained)' \
@@ -45,3 +46,4 @@ RUN groupadd cpan \
     && usermod -G cpan root \
   && true
 
+COPY known_hosts /etc/ssh/ssh_known_hosts
