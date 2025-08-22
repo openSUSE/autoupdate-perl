@@ -470,22 +470,20 @@ sub update_obs_perl {
                 next;
             }
             my $code = pop @out;
+            my $body = join '', @out;
             if ($code == 200) {
-                my $json = join '', @out;
-                my $data = eval { decode_json $json };
+                my $data = eval { decode_json $body };
                 if ($@) {
-                    info("Could not parse JSON, skipping. cmd '$cmd' ('$json'): $@");
+                    info("Could not parse JSON, skipping. cmd '$cmd' ($body): $@");
                     next;
                 }
                 if (ref $data ne 'ARRAY') {
-                    warn __PACKAGE__.':'.__LINE__.$".Data::Dumper->Dump([\@out], ['out']);
+                    info("JSON not as expected, skipping. cmd '$cmd' ($body): $@");
                     warn __PACKAGE__.':'.__LINE__.$".Data::Dumper->Dump([\$data], ['data']);
-                    info("JSON not as expected, skipping. cmd '$cmd' ('$json'): $@");
                     next;
                 }
                 for my $item (@$data) {
                     my $name = $item->{name};
-                    warn __PACKAGE__.':'.__LINE__.": !!!!!!!! $name\n";
                     if ($name eq $tar) {
                         info("$tar already exists in $user/$pkg, skipping");
                         next DIST;
@@ -493,9 +491,7 @@ sub update_obs_perl {
                 }
             }
             elsif ($code != 404) {
-                warn __PACKAGE__.':'.__LINE__.$".Data::Dumper->Dump([\$code], ['code']);
-                warn __PACKAGE__.':'.__LINE__.$".Data::Dumper->Dump([\@out], ['out']);
-                info("Response not as expected, skipping. cmd '$cmd': $@");
+                info("Response ($code) not as expected, skipping. cmd '$cmd' ($body): $@");
                 next;
             }
         }
@@ -675,7 +671,6 @@ sub osc_update_dist_perl {
     my $pkg = "perl-$dist";
     my $spec = "$pkg.spec";
     my $tar = basename $url;
-    warn __PACKAGE__.':'.__LINE__.$".Data::Dumper->Dump([\$tar], ['tar']);
 
     if ($exists) {
         my $cmd = sprintf "osc -A $apiurl rdelete -mrecreate -f %s %s",
@@ -686,8 +681,6 @@ sub osc_update_dist_perl {
 
     if ($gitea) {
         my $cmd = sprintf "git-obs repo fork perl/%s", $pkg;
-#        my $cmd = sprintf "osc -A $apiurl branch devel:languages:perl %s %s",
-#            $pkg, $project_prefix;
         debug("CMD $cmd");
         system $cmd and die "Error ($cmd): $?";
     }
@@ -739,8 +732,6 @@ sub osc_update_dist_perl {
         return;
     }
 
-
-
     my $old_tar = '';
     for my $tar (bsd_glob("{$dist-*.tar*,$dist-*.tgz,$dist-*.zip}")) {
         $old_tar = $tar;
@@ -761,13 +752,11 @@ sub osc_update_dist_perl {
             $old_path = ".osc/sources/$old_tar";
         }
     }
-    warn __PACKAGE__.':'.__LINE__.$".Data::Dumper->Dump([\$old_path], ['old_path']);
-    system "ls -l $dir";
 
     move "$dir/$tar", $checkout or die $!;
+    system "ls -la";
 
     my $error = 1;
-#    copy("$Bin/../cpanspec.yml", "$checkout/cpanspec.yml") unless -f "cpanspec.yml";
     {
         my $cmd = sprintf
             "timeout 900 perl $cpanspec $cpanspec_flags -v -f --pkgdetails %s --old-file %s %s > cpanspec.error 2>&1",
