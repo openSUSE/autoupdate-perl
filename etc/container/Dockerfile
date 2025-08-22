@@ -18,6 +18,7 @@ LABEL org.opencontainers.image.created="%BUILDTIME%"
 
 RUN zypper install -y -C \
         git \
+        git-lfs \
         gzip \
         obs-service-format_spec_file \
         obs-service-download_files \
