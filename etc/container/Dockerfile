@@ -40,6 +40,7 @@ RUN zypper install -y -C \
         'perl(Text::Autoformat)' \
         'perl(YAML::XS)' \
         'perl(XML::Simple)' \
+        'perl(LWP::Protocol::https)' \
    && zypper clean
 
 RUN groupadd cpan \
