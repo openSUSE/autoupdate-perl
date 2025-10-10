@@ -22,6 +22,7 @@ my $details_url = "http://www.cpan.org/modules/02packages.details.txt.gz";
 my @skip = qw/
     Acme-DependOnEverything
     Acme-Shining
+    Barcode-Code128
     MARC-Lint
     Unix-Mknod
 /;
