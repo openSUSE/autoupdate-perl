@@ -24,6 +24,7 @@ my @skip = qw/
     Acme-Shining
     Barcode-Code128
     MARC-Lint
+    Nagios-Plugin
     Unix-Mknod
 /;
 my %skip;
