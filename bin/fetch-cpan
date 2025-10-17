@@ -26,6 +26,7 @@ my @skip = qw/
     MARC-Lint
     Nagios-Plugin
     Unix-Mknod
+    psh
 /;
 my %skip;
 @skip{ @skip } = (1) x @skip;
