@@ -47,12 +47,32 @@ jobs:
     - name: configure osc
       env:
         OSC_USER: ${{ secrets.OSC_USER }}
+        OSC_EMAIL: ${{ secrets.OSC_EMAIL }}
         OSC_PASSWORD: ${{ secrets.OSC_PASSWORD }}
+        GITEA_API_TOKEN: ${{ secrets.GITEA_API_TOKEN }}
+        GITEA_PRIVKEY: ${{ secrets.GITEA_PRIVKEY }}
       run: |
+        set -x
+
         chmod go-r ~/
         cp etc/oscrc ~/.oscrc
         perl -pi -wE's/OSC_USER/$ENV{OSC_USER}/' ~/.oscrc
         perl -pi -wE's/OSC_PASSWORD/$ENV{OSC_PASSWORD}/' ~/.oscrc
+
+        mkdir -p ~/.config/tea
+        cp etc/tea.yml ~/.config/tea/config.yml
+        perl -pi -wE's/GITEA_API_TOKEN/$ENV{GITEA_API_TOKEN}/' ~/.config/tea/config.yml
+        perl -pi -wE's,GITEA_SSH_KEY_FILE,$ENV{HOME}/.ssh/id_gitea,' ~/.config/tea/config.yml
+        perl -pi -wE's/OSC_USER/$ENV{OSC_USER}/' ~/.config/tea/config.yml
+
+        cp etc/gitconfig ~/.gitconfig
+        perl -pi -wE's/OSC_USER/$ENV{OSC_USER}/' ~/.gitconfig
+        perl -pi -wE's/OSC_EMAIL/$ENV{OSC_EMAIL}/' ~/.gitconfig
+
+        mkdir ~/.ssh
+        echo "$GITEA_PRIVKEY" > ~/.ssh/id_gitea
+        chmod go-r ~/.ssh/id_gitea
+        git-obs login list
 
     - name: fetch cpan releases
       run: |
@@ -68,6 +88,7 @@ jobs:
     - name: update
       env:
         CPANSPEC_WRAP_BUILD_COMMAND: chgrp -R cpan ..; chmod -R g+rx ..; chmod -R g+rwx .; su cpanbuild -c '$COMMAND'
+        GITEA_API_TOKEN: ${{ secrets.GITEA_API_TOKEN }}
       run: |
         ./bin/update-perl \
             --cpanspec "$PWD/cpanspec/cpanspec" \
@@ -93,8 +114,8 @@ jobs:
         path: |
           ~/obs-mirror/cpan/
           ~/obs-mirror/status/
-          ~/obs-mirror/auto.xml
-          ~/obs-mirror/perl.xml
+          ~/obs-mirror/filelists.xml
+          ~/obs-mirror/repomd.xml
 
 # Trigger with gh cli:
 # gh workflow run run.yaml [--ref branch] -f image=registry.opensuse.org/home/tinita/cpanspec/container/containers/opensuse/autoupdate-perl -f repo=https://github.com/perlpunk/cpanspec -f branch=normalize-versions -f obs_project=devel:languages:perl:autoupdate -f max_modules=1

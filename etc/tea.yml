@@ -1,0 +1,7 @@
+logins:
+- name: obscpanmirror
+  url: https://src.opensuse.org
+  user: OSC_USER
+  token: GITEA_API_TOKEN
+  ssh_key: GITEA_SSH_KEY_FILE
+  default: true
