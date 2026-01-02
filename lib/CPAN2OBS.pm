@@ -133,7 +133,7 @@ sub fetch_cpan_list {
     my $details_mtime = -e $details ? (stat $details)[9] : 0;
     my $stats_mtime = -e $cpan_stats ? (stat $cpan_stats)[9] : 0;
     if ($details_mtime + 60 * 30 < time) {
-        my $cmd = "wget -q $details_url -O $details";
+        my $cmd = "wget --no-verbose $details_url -O $details";
         debug("CMD $cmd");
         system $cmd;
         $details_mtime = -e $details ? (stat $details)[9] : 0;
@@ -562,7 +562,7 @@ sub osc_update_dist {
     my $tar = basename $url;
 
     {
-        my $cmd = "wget --tries 5 --timeout 30 --connect-timeout 30 -nc -q $mirror/authors/id/$url -O $tar -o /dev/null";
+        my $cmd = "wget --tries 5 --timeout 30 --connect-timeout 30 -nc --no-verbose $mirror/authors/id/$url -O $tar -o /dev/null";
         debug("CMD $cmd");
         system $cmd;
         if ($? or not -f $tar) {
@@ -694,7 +694,7 @@ sub osc_update_dist_perl {
     }
     {
         my $cmd = sprintf
-            "wget --tries 5 --timeout 30 --connect-timeout 30 -nc -q %s -O $dir/$tar -o /dev/null",
+            "wget --tries 5 --timeout 30 --connect-timeout 30 -nc --no-verbose %s -O $dir/$tar -o /dev/null",
             "$mirror/authors/id/$url";
         debug("CMD $cmd");
         system $cmd;
