@@ -37,7 +37,7 @@ $letter = uc $letter;
 
 my $cpan2obs = CPAN2OBS->new({
     data => $data,
-    cpanmirror => 'http://cpan.noris.de',
+    cpanmirror => 'http://cpan.metacpan.org',
     apiurl => 'https://api.opensuse.org',
     cpanspec => $ENV{CPANSPEC} || "$Bin/../../cpanspec/cpanspec",
     cpanspec_flags => '',
