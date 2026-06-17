@@ -741,6 +741,10 @@ sub osc_update_dist_perl {
         debug("CMD $cmd");
         system $cmd
             and die "Error executing '$cmd': $?";
+        $cmd = "git push origin main";
+        debug("CMD $cmd");
+        system $cmd
+            and die "Error executing '$cmd': $?";
     }
 
     my $old_tar = '';
