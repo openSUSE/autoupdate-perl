@@ -772,6 +772,7 @@ sub osc_update_dist_perl {
     system "ls -la";
 
     my $error = 1;
+    my $hints;
     {
         my $cmd = sprintf
             "timeout 900 perl $cpanspec $cpanspec_flags -v -f --pkgdetails %s --old-file %s %s > cpanspec.error 2>&1",
@@ -783,6 +784,8 @@ sub osc_update_dist_perl {
         }
         else {
             system("cat cpanspec.error");
+            # Grep for possible issues
+            $hints = qx{grep '^CHECK: ' cpanspec.error};
             $error = 0;
             unlink "cpanspec.error";
         }
@@ -815,6 +818,11 @@ sub osc_update_dist_perl {
         my $version_normal = eval { version->parse($version || 0) }->normal;
         my $msg = "Automatic update to $tar";
         my $desc = 'Check [the update process docs](https://src.opensuse.org/tinita/perl-update-process)';
+        if ($hints) {
+            # Format hints as tasks
+            $hints =~ s/^/- \[ \] /mg;
+            $desc .= "\n\nHints:\n$hints";
+        }
         my $cmd = "git commit -m'$msg'";
         debug("CMD $cmd");
         system $cmd and die "Error executig '$cmd': $?";
